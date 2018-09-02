@@ -1,0 +1,225 @@
+<!-- 重点：loadAreaNode -->
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>反向镂空区域</title>
+    <style>
+        html,
+        body,
+        #container {
+            width: 100%;
+            height: 100%;
+            margin: 0px;
+            background: #ffffff !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="container"></div>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/javascript" src='https://webapi.amap.com/maps?v=1.4.9&key=51888391fe08846bd136d174c9f287ac'></script>
+    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src='polygonSmooth.js'></script>
+    <script type="text/javascript">
+        //创建地图
+        var map = new AMap.Map('container', {
+            cursor: 'default',
+            zoom: 7,
+            features: []
+        });
+
+
+        var path = [];
+
+        //首先放置背景区域，这里是大陆的边界
+        // console.log(getLongestRing(countryNode.getParentFeature()))
+        // path.push(getLongestRing(countryNode.getParentFeature()));
+        path.push([[87.638275, 44.385598], [136.638275, 44.385598], [136.638275, 8.296956], [87.638275, 8.296956]]);
+
+        AMap.service('AMap.DistrictSearch', function () {
+            var opts = {
+                subdistrict: 1,   //返回下一级行政区
+                extensions: 'all',  //返回行政区边界坐标组等具体信息
+                level: 'city'  //查询行政级别为 市
+            };
+            //实例化DistrictSearch
+            district = new AMap.DistrictSearch(opts);
+            district.setLevel('district');
+            //行政区查询
+            district.search('湖南省', function (status, result) {
+                var bounds = result.districtList[0].boundaries;
+                if (bounds) {
+                    var lnglats = bounds.map(bound => bound.map(val => [val.lng, val.lat]))
+                    // console.log('湖南省', JSON.stringify(lnglats))
+                    path.push.apply(path, bounds)
+                }
+                // console.log(result)
+
+                result.districtList[0].districtList.forEach(item => {
+                    district.search(item.name, function (status, result) {
+                        var lnglats = result.districtList[0].boundaries.map(bound => bound.map(val => [val.lng, val.lat]))
+                        // console.log(item.name, JSON.stringify(lnglats))
+                    })
+                })
+
+                // console.log(result)
+                console.time('line')
+                var extent = [108.6, 24.5, 114.4, 30.3];
+                var breaks = [0, 10, 20, 50, 100, 500];
+
+                // console.time('interpolate')
+                // var points = turf.randomPoint(3600, { bbox: extent })
+                // turf.featureEach(points, function (point) {
+                //     point.properties.temperature = Math.random() * 100;
+                // });
+                // var options = { gridType: 'point', property: 'temperature', units: 'kilometers' };
+                // var grid = turf.interpolate(points, 10, options);
+                // console.log('grid', grid)
+                // console.timeEnd('interpolate')
+
+                // map.setLimitBounds(map.getBounds());
+                // var cellWidth = 20;
+                // var pointGrid = turf.pointGrid(extent, cellWidth, { units: 'kilometers' });
+                // console.log('pointGrid', pointGrid.features.length)
+
+                // for (var i = 0; i < pointGrid.features.length; i++) {
+                //     pointGrid.features[i].properties.temperature = Math.random() * 5;
+                // }
+
+                // $.get('http://192.168.1.110:8080/task/interpolate', function(res) {
+                $.get('./test.json', function (polygon) {
+                    console.time('interpolate')
+                    
+                    // console.time('isobands')
+                    // var polygons = turf.isobands(res, breaks, { zProperty: 'val' });
+                    // var polygon = polygonSmooth(polygons, { iterations: 3 })
+                    // console.timeEnd('isobands')
+
+                    var geojson = new AMap.GeoJSON({
+                        geoJSON: polygon,     //geojsonObject,
+                        getPolygon: function (geojson, lnglats) {//还可以自定义getMarker和 getPolyline 和 getPolygon
+                            var color = ''
+                            console.log(geojson.properties.value)
+                            switch (geojson.properties.value) {
+                                case '0-10':
+                                    color = 'white'
+                                    break;
+                                case '10-20':
+                                    color = 'green'
+                                    break;
+                                case '20-50':
+                                    color = 'gray'
+                                    break;
+                                case '50-100':
+                                    color = 'black'
+                                    break;
+                                case '100-500':
+                                    color = 'red'
+                                    break;
+                                default:
+                                    color = 'white'
+                                    break;
+                            }
+                            return new AMap.Polygon({
+                                path: lnglats,
+                                strokeOpacity: 0,
+                                strokeColor: geojson.properties.color,
+                                fillOpacity: 0.8,
+                                fillColor: geojson.properties.color
+                            });
+                        }
+                    });
+                    geojson.setMap(map);
+                    
+                    var polygon = new AMap.Polygon({
+                        bubble: true,
+                        lineJoin: 'round',
+                        strokeColor: '#ccc', //线颜色
+                        strokeOpacity: 1, //线透明度
+                        strokeWeight: 1, //线宽
+                        fillColor: 'white', //填充色
+                        fillOpacity: 1, //填充透明度
+                        map: map,
+                        path: path
+                    });
+
+                    console.timeEnd('interpolate')
+                })
+                // var lines = turf.isobands(grid, breaks, { zProperty: 'temperature' });
+                // var polygon = polygonSmooth(lines, { iterations: 3 })
+                // console.log(polygon)
+                // var lines = turf.isolines(grid, breaks, { zProperty: 'temperature' });
+                // var _lFeatures = lines.features;
+                // for (var i = 0; i < _lFeatures.length; i++) {
+                //     var _coords = _lFeatures[i].geometry.coordinates;
+                //     var _lCoords = [];
+                //     for (var j = 0; j < _coords.length; j++) {
+                //         var _coord = _coords[j];
+                //         var line = turf.lineString(_coord);
+                //         var curved = turf.bezierSpline(line);
+                //         _lCoords.push(curved.geometry.coordinates);
+                //     }
+                //     _lFeatures[i].geometry.coordinates = _lCoords;
+                // }
+                // console.log(lines)
+                // var geojson = new AMap.GeoJSON({
+                //     geoJSON: polygon,     //geojsonObject,
+                //     'getPolygon': function (geojson, lnglats) {//还可以自定义getMarker和 getPolyline 和 getPolygon
+                //         var color = ''
+                //         // console.log(geojson)
+                //         switch (geojson.properties._parentProperities.temperature) {
+                //             case '0-10':
+                //                 color = 'white'
+                //                 break;
+                //             case '10-20':
+                //                 color = 'green'
+                //                 break;
+                //             case '20-50':
+                //                 color = 'gray'
+                //                 break;
+                //             case '50-100':
+                //                 color = 'black'
+                //                 break;
+                //             case '100-500':
+                //                 color = 'red'
+                //                 break;
+                //             default:
+                //                 color = 'white'
+                //                 break;
+                //         }
+                //         return new AMap.Polygon({
+                //             path: lnglats,
+                //             strokeOpacity: 0.1,
+                //             strokeColor: color,
+                //             fillOpacity: 0.1,
+                //             fillColor: color
+                //         });
+                //     }
+                // });
+                // geojson.setMap(map);
+
+                //绘制带环多边形
+                //https://lbs.amap.com/api/javascript-api/reference/overlay#Polygon
+                // var polygon = new AMap.Polygon({
+                //     bubble: true,
+                //     lineJoin: 'round',
+                //     strokeColor: '#ccc', //线颜色
+                //     strokeOpacity: 1, //线透明度
+                //     strokeWeight: 1, //线宽
+                //     fillColor: 'white', //填充色
+                //     fillOpacity: 1, //填充透明度
+                //     map: map,
+                //     path: path
+                // });
+                console.timeEnd('line')
+            });
+        });
+
+    </script>
+</body>
+
+</html>

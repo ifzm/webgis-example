@@ -1,0 +1,116 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <link href="https://cdn.bootcss.com/openlayers/4.6.5/ol-debug.css" rel="stylesheet">
+    <style type="text/css">
+        body,
+        #map {
+            border: 0px;
+            margin: 0px;
+            padding: 0px;
+            width: 100%;
+            height: 100%;
+            font-size: 13px;
+        }
+
+        #infobox {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 999;
+            background: #ffffff;
+            border: 1px solid #000;
+            box-shadow: 1px 1px 1px #C0C0C0;
+        }
+    </style>
+</head>
+
+<body onLoad="init()">
+    <div id="map">
+        <div id="infobox">
+        </div>
+    </div>
+    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.bootcss.com/openlayers/4.6.5/ol-debug.js"></script>
+    <script type="text/javascript">
+        function init() {
+            var bounds = [73.4510046356223, 18.1632471876417,
+                134.976797646506, 53.5319431522236];
+            var projection = new ol.proj.Projection({
+                code: 'EPSG:4326',
+                units: 'degrees'
+            });
+            $.get("china1.json", null, function (result) {
+                var features = (new ol.format.GeoJSON()).readFeatures(result);
+                console.log(features)
+                var vectorSource = new ol.source.Vector();
+                vectorSource.addFeatures(features);
+                var vector = new ol.layer.Vector({
+                    source: vectorSource,
+                    style: function (feature, resolution) {
+                        var lvalue = feature.get("lvalue"), color = "0,0,0,0";
+                        if (lvalue < 20) {
+                            color = "245,200,200,255";
+                        }
+                        else if (lvalue >= 20 && lvalue < 30) {
+                            color = "245,183,48,255";
+                        }
+                        else if (lvalue >= 25 && lvalue < 30) {
+                            color = "245,20,48,255";
+                        }
+                        else if (lvalue >= 30 && lvalue < 35) {
+                            color = "0,183,48,255";
+                        }
+                        else {
+                            color = "0,255,255,255";
+                        }
+                        return new ol.style.Style({
+                            stroke: new ol.style.Stroke({
+                                color: '#ffffff',
+                                // lineDash: [10],
+                                width: 1
+                            }),
+                            fill: new ol.style.Fill({
+                                color: "rgba(" + color + ")",
+                                opacity: 0.6
+                            })
+                        });
+                    }
+                });
+                // var tiled = new ol.layer.Tile({
+                //     source: new ol.source.TileWMS({
+                //         url: 'http://192.168.10.185:8086/geoserver/lzugis/wms',
+                //         params: {
+                //             'FORMAT': 'image/png',
+                //             'VERSION': '1.1.1',
+                //             tiled: true,
+                //             LAYERS: 'lzugis:capital',
+                //             STYLES: ''
+                //         },
+                //         serverType: 'geoserver'
+                //     })
+                // });
+                var map = new ol.Map({
+                    controls: ol.control.defaults({
+                        attribution: false
+                    }),
+                    target: 'map',
+                    layers: [vector, new ol.layer.Tile({
+                        source: new ol.source.OSM()
+                    })],
+                    view: new ol.View({
+                        projection: projection
+                    })
+                });
+                map.getView().fit(bounds, map.getSize());
+            });
+        }
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <title>GeoJSON</title>
+    <link rel="stylesheet" href="https://cache.amap.com/lbs/static/main1119.css"/>
+    <script src="//webapi.amap.com/maps?v=1.4.9&key=51888391fe08846bd136d174c9f287ac"></script>
+</head>
+<body>
+<div id="container"></div>
+<script type="text/javascript">
+    var map = new AMap.Map("container", {
+        resizeEnable: true,
+        center: [107.80625,30.12936],
+        pitchEnable:true,
+        pitch:40,
+        zoom: 5,
+    });
+    var geojsonURL = './china1.json';
+    //该GeoJson仅供本示例使用
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            var geojson = new AMap.GeoJSON({
+                geoJSON:JSON.parse(xhr.responseText),     //geojsonObject,
+                'getPolygon': function(geojson, lnglats) {//还可以自定义getMarker和getPolyline
+                    console.log(geojson)
+                    var area = AMap.GeometryUtil.ringArea(lnglats[0])//求面积
+                    return new AMap.Polygon({
+                        path: lnglats,
+                        fillOpacity: 1,//面积越大透明度越高
+                        strokeColor:'black',
+                        fillColor: 'red'
+                        
+                    });
+                }
+            });
+            geojson.setMap(map);
+        }
+    };
+    xhr.open('GET', geojsonURL);
+    xhr.send();
+
+    
+</script>
+
+</body>
+</html>
