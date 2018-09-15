@@ -11,9 +11,11 @@
 
 <body>
     <div id="map"></div>
-    
+
     <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
+    <script src="https://cdn.bootcss.com/pixi.js/4.8.0/pixi.min.js"></script>
+    <script src="./L.PixiOverlay.js"></script>
     <script src="./leaflet.ajax.min.js"></script>
     <script src="./leaflet.rotatedMarker.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
@@ -25,11 +27,7 @@
         }
 
         var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]
-        var map = L.map('map', {
-            // minZoom: 7,
-            // maxBounds: L.latLngBounds(L.latLng(24.5, 108.6), L.latLng(30.3, 114.4)),
-            maxBoundsViscosity: 1.0
-        }).setView([27.4, 111.5], 7);
+        var map = L.map('map').setView([27.4, 111.5], 7);
         // map.setMaxBounds(map.getBounds())
 
         // 点标记图层
@@ -72,7 +70,7 @@
         })
         L.geoJSON(points, {
             pointToLayer: function (feature, latlng) {
-                return L.marker(latlng, { 
+                return L.marker(latlng, {
                     icon: baseballIcon
                 })
             }
@@ -89,8 +87,8 @@
         })
         L.geoJSON(points, {
             pointToLayer: function (feature, latlng) {
-                return L.marker(latlng, { 
-                    icon: windIcon, 
+                return L.marker(latlng, {
+                    icon: windIcon,
                     rotationAngle: Math.random() * 360
                 })
             }
@@ -107,21 +105,21 @@
 
         // 14个地市边界图层
         var cityLayer = L.layerGroup()
-        ;[57687, 57662, 57558, 57674, 57749, 57763, 57766, 57773, 57872, 57972, 57780, 57584, 57866, 57649].forEach(function(code) {
-            L.geoJson.ajax('./geojson/' + code + '.json', {
-                style: function (feature) {
-                    return feature.properties && feature.properties.style
-                }
-            }).addTo(cityLayer)
-        })
-        
+            ;[57687, 57662, 57558, 57674, 57749, 57763, 57766, 57773, 57872, 57972, 57780, 57584, 57866, 57649].forEach(function (code) {
+                L.geoJson.ajax('./geojson/' + code + '.json', {
+                    style: function (feature) {
+                        return feature.properties && feature.properties.style
+                    }
+                }).addTo(cityLayer)
+            })
+
         // 湖南省边界图层
         var provinceLayer = L.geoJson.ajax('./geojson/hunan.json', {
             style: function (feature) {
                 return feature.properties && feature.properties.style
             }
         })
-        provinceLayer.addTo(map)
+        // provinceLayer.addTo(map)
 
         // 色斑图层
         var spotLayer = L.layerGroup()
@@ -149,6 +147,46 @@
             }).addTo(spotLayer)
         })
 
+        // 海量点图层
+        var loader = new PIXI.loaders.Loader();
+        loader.add('marker', 'baseball-marker.png');
+        loader.load(function (loader, resources) {
+            var markerTexture = resources.marker.texture;
+            var markerLatLng = [27.4, 111.5];
+            var marker = new PIXI.Sprite(markerTexture);
+            marker.anchor.set(0.5, 1);
+
+            var pixiContainer = new PIXI.Container();
+            pixiContainer.addChild(marker);
+
+            var firstDraw = true;
+            var prevZoom;
+
+            var pixiOverlay = L.pixiOverlay(function (utils) {
+                var zoom = utils.getMap().getZoom();
+                var container = utils.getContainer();
+                var renderer = utils.getRenderer();
+                var project = utils.latLngToLayerPoint;
+                var scale = utils.getScale();
+
+                if (firstDraw) {
+                    var markerCoords = project(markerLatLng, zoom);
+                    console.log(zoom)
+                    marker.x = markerCoords.x;
+                    marker.y = markerCoords.y;
+                }
+
+                if (firstDraw || prevZoom !== zoom) {
+                    marker.scale.set(1 / scale);
+                }
+
+                firstDraw = false;
+                prevZoom = zoom;
+                renderer.render(container);
+            }, pixiContainer);
+            pixiOverlay.addTo(map);
+        });
+
         // 添加图层控件
         L.control.layers({
             // ...
@@ -162,7 +200,7 @@
             "图片标记": imageMakerLayer,
             "风向标记": windMakerLayer,
         }).addTo(map)
-        
+
 
         // var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]//[0, 10, 20, 50, 100, 500];
 
@@ -215,7 +253,7 @@
         //     isosurface.addTo(map)
         //     console.timeEnd('isosurface')
 
-            
+
         // })
 
     </script>
