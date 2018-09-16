@@ -27,6 +27,6 @@ body,
     color: red;
 }
 
-.rotate {
-    
+.text-marker {
+    white-space: nowrap;
 }

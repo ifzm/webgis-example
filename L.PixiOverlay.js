@@ -120,6 +120,7 @@
 
 			var map = this._map;
 			this._initialZoom = this.options.projectionZoom(map);
+			console.log(map)
 			this._wgsOrigin = L.latLng([0, 0]);
 			this._wgsInitialShift = map.project(this._wgsOrigin, this._initialZoom);
 			this._mapInitialZoom = map.getZoom();

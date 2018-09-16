@@ -20,14 +20,20 @@
     <script src="./leaflet.rotatedMarker.js"></script>
     <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
     <script src='polygonSmooth.js'></script>
+    <script src='MarkerContainer.js'></script>
+    <script src='bezier-easing.js'></script>
     <script src="data.js"></script>
+    <script src="cityAndTownsData.js"></script>
     <script>
         function randomColor() {
             return '#' + Math.floor(Math.random() * 0xffffff).toString(16)
         }
 
         var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]
-        var map = L.map('map').setView([27.4, 111.5], 7);
+        var map = L.map('map', {
+            maxZoom: 18,
+            renderer: L.canvas()
+        }).setView([27.4, 111.5], 13);
         // map.setMaxBounds(map.getBounds())
 
         // 点标记图层
@@ -46,7 +52,9 @@
                     weight: 1,
                     opacity: 1,
                     fillOpacity: 0.8
-                }).bindPopup('val: ' + feature.properties.val)
+                })
+                // .bindTooltip('val: ' + feature.properties.val, {permanent: true})
+                // .bindPopup('val: ' + feature.properties.val)
             }
         }).addTo(markerLayer)
 
@@ -103,6 +111,8 @@
             id: 'mapbox.light'
         })
 
+        // tileLayer.addTo(map)
+
         // 14个地市边界图层
         var cityLayer = L.layerGroup()
             ;[57687, 57662, 57558, 57674, 57749, 57763, 57766, 57773, 57872, 57972, 57780, 57584, 57866, 57649].forEach(function (code) {
@@ -119,7 +129,7 @@
                 return feature.properties && feature.properties.style
             }
         })
-        // provinceLayer.addTo(map)
+        provinceLayer.addTo(map)
 
         // 色斑图层
         var spotLayer = L.layerGroup()
@@ -147,45 +157,209 @@
             }).addTo(spotLayer)
         })
 
+        var testLayer = L.layerGroup()
+        var cacheStationMarkers = {}
+        testLayer.addTo(map)
+
+        function initStationLayer() {
+            testLayer.clearLayers()
+
+            if (map.getZoom() > 9) {
+                console.time('contains')
+                var bounds = map.getBounds()
+                townsStationData.forEach(function(marker) {
+                    var latlng = [marker.lat * 1, marker.lon * 1]
+                    var contains = bounds.contains(latlng)
+                    if (contains) {
+                        var stationMarker = cacheStationMarkers[latlng]
+                        if (!stationMarker) {
+                            var icon = L.divIcon({ html: marker.station, className: 'text-marker' })
+                            cacheStationMarkers[latlng] = stationMarker = L.marker(latlng, { icon: icon })
+                        }
+                        stationMarker.addTo(testLayer)
+                    }
+                })
+                console.timeEnd('contains')
+            }
+        }
+
+        initStationLayer()
+        map.on('zoomend moveend', initStationLayer)
+
         // 海量点图层
-        var loader = new PIXI.loaders.Loader();
-        loader.add('marker', 'baseball-marker.png');
-        loader.load(function (loader, resources) {
-            var markerTexture = resources.marker.texture;
-            var markerLatLng = [27.4, 111.5];
-            var marker = new PIXI.Sprite(markerTexture);
-            marker.anchor.set(0.5, 1);
+        // var easing = BezierEasing(0, 0, 0.25, 1);
+        // var loader = new PIXI.loaders.Loader();
+        // loader
+        //     .add('plane', 'plane.png')
+        //     .add('bicycle', 'plane.png');
+        // loader.load(function (loader, resources) {
+        //     var textures = [resources.plane.texture, resources.bicycle.texture];
+        //     var pixiContainer = new PIXI.Container();
+        //     var markerSprites = [];
+        //     var zoomChangeTs = null;
+        //     var pixiPointLayer = (function () {
+        //         // var colorScale = d3.scaleLinear()
+        //         //     .domain([0, 50, 100])
+        //         //     .range(["#c6233c", "#ffd300", "#008000"]);
+        //         var doubleBuffering = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        //         return L.pixiOverlay(function (utils, event) {
+        //             var zoom = utils.getMap().getZoom();
+        //             var container = utils.getContainer();
+        //             var renderer = utils.getRenderer();
+        //             var project = utils.latLngToLayerPoint;
+        //             var getScale = utils.getScale;
+        //             var invScale = 1 / getScale();
 
-            var pixiContainer = new PIXI.Container();
-            pixiContainer.addChild(marker);
+        //             if (event.type === 'add') {
+        //                 cntyData.forEach(function (marker) {
+        //                     var coords = project([marker.lat, marker.lon]);
+        //                     console.log(coords)
+        //                     var index = Math.floor(Math.random() * textures.length);
+        //                     // var markerSprite = new PIXI.Sprite(textures[index]);
+        //                     var markerSprite = new PIXI.Text(marker.cnty);
+        //                     markerSprite.textureIndex = index;
+        //                     markerSprite.x = coords.x;
+        //                     markerSprite.y = coords.y;
+        //                     markerSprite.anchor.set(0.5, 0.5);
+        //                     markerSprite.scale.set(invScale);
+        //                     // var tint = d3.color(colorScale(Math.random() * 100)).rgb();
+        //                     markerSprite.tint = Math.floor(Math.random() * 0xffffff).toString(16)//256 * (tint.r * 256 + tint.g) + tint.b;
+        //                     container.addChild(markerSprite);
+        //                     markerSprites.push(markerSprite);
+        //                     markerSprite.legend = marker.city || marker.label;
+        //                 });
+        //             }
 
-            var firstDraw = true;
-            var prevZoom;
+        //             if (event.type === 'zoomanim') {
+        //                 zoomChangeTs = 0;
+        //                 var targetScale = 1 / getScale(event.zoom);
+        //                 markerSprites.forEach(function (markerSprite) {
+        //                     markerSprite.currentScale = markerSprite.scale.x;
+        //                     markerSprite.targetScale = targetScale;
+        //                 });
+        //                 return;
+        //             }
 
-            var pixiOverlay = L.pixiOverlay(function (utils) {
-                var zoom = utils.getMap().getZoom();
-                var container = utils.getContainer();
-                var renderer = utils.getRenderer();
-                var project = utils.latLngToLayerPoint;
-                var scale = utils.getScale();
+        //             if (event.type === 'redraw') {
+        //                 var delta = event.delta;
+        //                 // markerSprites.forEach(function (markerSprite) {
+        //                 //     markerSprite.rotation -= 0.03 * delta;
+        //                 // });
+        //                 if (zoomChangeTs !== null) {
+        //                     var duration = 17;
+        //                     zoomChangeTs += delta;
+        //                     var lambda = zoomChangeTs / duration;
+        //                     if (lambda > 1) {
+        //                         lambda = 1;
+        //                         zoomChangeTs = null;
+        //                     }
+        //                     lambda = easing(lambda);
+        //                     markerSprites.forEach(function (markerSprite) {
+        //                         markerSprite.scale.set(markerSprite.currentScale + lambda * (markerSprite.targetScale - markerSprite.currentScale));
+        //                     });
+        //                 }
+        //                 else {
+        //                     markerSprites.forEach(function (markerSprite) {
+        //                         markerSprite.scale.set(invScale);
+        //                     });
+        //                 }
+        //             }
+        //             renderer.render(container);
+        //         }, pixiContainer, {
+        //                 doubleBuffering: doubleBuffering,
+        //                 destroyInteractionManager: true
+        //             });
+        //     })();
 
-                if (firstDraw) {
-                    var markerCoords = project(markerLatLng, zoom);
-                    console.log(zoom)
-                    marker.x = markerCoords.x;
-                    marker.y = markerCoords.y;
+        //     pixiPointLayer.addTo(map);
+
+        //     var ticker = new PIXI.ticker.Ticker();
+        //     ticker.add(function (delta) {
+        //         pixiPointLayer.redraw({ type: 'redraw', delta: delta });
+        //     });
+        //     ticker.start();
+        //     map.on('zoomanim', pixiLayer.redraw, pixiLayer);
+        // });
+
+        // PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST
+        var easing = BezierEasing(0, 0, 0.25, 1)
+
+        // PIXI Point Markers
+        var doubleBuffering = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream
+        var pixiContainer = new PIXI.Container()
+        var markerSprites = []
+        var zoomChangeTs = null
+        var pixiPointMarkerLayer = L.pixiOverlay(function(utils, event) {
+            var zoom = utils.getMap().getZoom()
+            var container = utils.getContainer()
+            var renderer = utils.getRenderer()
+            var project = utils.latLngToLayerPoint
+            var getScale = utils.getScale
+            var invScale = 1 / getScale()
+
+            if (event.type === 'add') {
+                townsStationData.forEach(function (marker) {
+                    var coords = project([marker.lat, marker.lon])
+                    var markerSprite = new PIXI.Text(marker.station)
+                    markerSprite.x = coords.x;
+                    markerSprite.y = coords.y;
+                    markerSprite.anchor.x = 0.5
+                    markerSprite.scale.set(invScale);
+                    container.addChild(markerSprite);
+                    markerSprites.push(markerSprite);
+                })
+            }
+
+            if (event.type === 'zoomanim') {
+                zoomChangeTs = 0
+                var targetScale = 1 / getScale(event.zoom);
+                markerSprites.forEach(function (markerSprite) {
+                    markerSprite.currentScale = markerSprite.scale.x;
+                    markerSprite.targetScale = targetScale;
+                })
+                return
+            }
+
+            if (event.type === 'redraw') {
+                var delta = event.delta
+                if (false) {
+                    var duration = 17
+                    zoomChangeTs += delta
+                    var lambda = zoomChangeTs / duration
+                    if (lambda > 1) {
+                        lambda = 1;
+                        zoomChangeTs = null
+                    }
+                    lambda = easing(lambda)
+                    markerSprites.forEach(function (markerSprite) {
+                        // markerSprite.scale.set(markerSprite.currentScale + lambda * (markerSprite.targetScale - markerSprite.currentScale))
+                    })
+                } else {
+                    markerSprites.forEach(function (markerSprite) {
+                        markerSprite.scale.set(invScale)
+                    });
                 }
+            }
 
-                if (firstDraw || prevZoom !== zoom) {
-                    marker.scale.set(1 / scale);
-                }
+            renderer.render(container)
+        }, pixiContainer, {
+            resolution: 1,
+            doubleBuffering: doubleBuffering,
+            destroyInteractionManager: true
+        })
 
-                firstDraw = false;
-                prevZoom = zoom;
-                renderer.render(container);
-            }, pixiContainer);
-            pixiOverlay.addTo(map);
-        });
+        var ticker = new PIXI.ticker.Ticker()
+        ticker.add(function (delta) {
+            pixiPointMarkerLayer.redraw({ type: 'redraw', delta: delta })
+        })
+        ticker.start()
+        map.on('zoomanim', pixiPointMarkerLayer.redraw, pixiPointMarkerLayer)
+
+        // PIXI Image Markers
+        var pixiImagerMarkerLayer = L.layerGroup()
+
+        // PIXI Polygons
+        var pixiPolygonsLayer = L.layerGroup()
 
         // 添加图层控件
         L.control.layers({
@@ -199,7 +373,11 @@
             "数值标记": numberMakerLayer,
             "图片标记": imageMakerLayer,
             "风向标记": windMakerLayer,
+            "海量点标记": pixiPointMarkerLayer,
+            "海量图片标记": pixiImagerMarkerLayer,
+            "海量面": pixiPolygonsLayer
         }).addTo(map)
+
 
 
         // var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]//[0, 10, 20, 50, 100, 500];
