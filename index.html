@@ -7,6 +7,7 @@
     <title>Maps</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" />
     <link rel="stylesheet" href="index.css">
+    <link href="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css" rel='stylesheet' />
 </head>
 
 <body>
@@ -15,10 +16,12 @@
     <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
     <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
     <script src="https://cdn.bootcss.com/pixi.js/4.8.0/pixi.min.js"></script>
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js"></script>
     <script src="./L.PixiOverlay.js"></script>
     <script src="./leaflet.ajax.min.js"></script>
     <script src="./leaflet.rotatedMarker.js"></script>
-    <script src='https://npmcdn.com/@turf/turf/turf.min.js'></script>
+    <script src="./leaflet-mapbox-gl.js"></script>
+    <script src='https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js'></script>
     <script src='polygonSmooth.js'></script>
     <script src='MarkerContainer.js'></script>
     <script src='bezier-easing.js'></script>
@@ -32,9 +35,12 @@
         var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]
         var map = L.map('map', {
             maxZoom: 18,
-            renderer: L.canvas()
-        }).setView([27.4, 111.5], 13);
+            // renderer: L.canvas(),
+        }).setView([27.4, 111.5], 6);
         // map.setMaxBounds(map.getBounds())
+
+        map.createPane('topPane')
+        map.getPane('topPane').style.zIndex = 400
 
         // 点标记图层
         var markerLayer = L.layerGroup()
@@ -103,13 +109,127 @@
         }).addTo(windMakerLayer)
 
         // 底图图层
-        var tileLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
-            maxZoom: 18,
-            attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
-                '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
-                'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-            id: 'mapbox.light'
+        // var tileLayer = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw', {
+        //     maxZoom: 18,
+        //     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+        //         '<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        //         'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        //     id: 'mapbox.light'
+        // })
+
+        console.time('gl')
+        var gl = L.mapboxGL({
+            accessToken: 'pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow',
+            style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
+            pane: 'topPane'
+        }).addTo(map)
+        console.timeEnd('gl')
+
+        var glMap = gl._glMap
+        glMap.on('load', function () {
+            var stations = townsStationData.map(v => ({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [Number(v.lon), Number(v.lat)]
+                },
+                "properties": {
+                    "title": v.station,
+                    "icon": "harbor"
+                }
+            }))
+
+            var cntys = cntyData.map(v => ({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [Number(v.lon), Number(v.lat)]
+                },
+                "properties": {
+                    "title": v.cnty,
+                    "icon": "baseball"
+                }
+            }))
+
+            var start = Date.now()
+            console.time('points')
+            glMap.addLayer({
+                "id": "points",
+                "type": "symbol",
+                "source": {
+                    "type": "geojson",
+                    "data": {
+                        "type": "FeatureCollection",
+                        "features": stations
+                    }
+                },
+                "layout": {
+                    // "icon-image": "{icon}-15",
+                    "text-field": "{title}",
+                    "text-size": 14,
+                    // "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+                    "text-offset": [0, 0.6],
+                    "text-anchor": "top",
+                    // "icon-rotate": 45
+                }
+            })
+
+            // glMap.setLayerZoomRange('points', 10, 24)
+            console.timeEnd('points')
+
+            glMap.loadImage('baseball-marker.png', function(err, image) {
+                if (err) throw err
+
+                glMap.addImage('baseball', image)
+                
+                glMap.addLayer({
+                    "id": "markers",
+                    "type": "symbol",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "FeatureCollection",
+                            "features": cntys
+                        }
+                    },
+                    "layout": {
+                        "icon-image": "baseball",
+                        // "text-field": "{title}",
+                        // "text-size": 14,
+                        // "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
+                        // "text-offset": [0, 0.6],
+                        // "text-anchor": "top",
+                        "icon-rotate": 45
+                    }
+                })
+            })
         })
+
+        map.on('click', function (e) {
+            var point = e.layerPoint
+            var offset = gl._offset || {x: 0, y: 0}
+            // to target only some layers, change the options, see documentation:
+            // { layers: ['my-layer-name'] }
+            // https://www.mapbox.com/mapbox-gl-js/api/
+            console.time('query')
+            var features = glMap.queryRenderedFeatures([point.x - offset.x, point.y - offset.y], {
+                layers: ['markers']
+            })
+            console.timeEnd('query')
+
+            if (features.length > 0) {
+                window.popup = L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(features[0].properties.title)
+                    .openOn(map);
+            }
+        })
+
+        map.on('zoomstart', function(e) {
+            window.popup && (window.popup.remove(), window.popup = undefined)
+        })
+
+        console.log(gl)
 
         // tileLayer.addTo(map)
 
@@ -133,20 +253,20 @@
 
         // 色斑图层
         var spotLayer = L.layerGroup()
-        $.get('./grids/TMAX-2018090108.json', function (grid) {
+        $.get('./geojson.json', function (grid) {
             map.createPane('isosurface')
             map.getPane('isosurface').style.zIndex = 399
 
-            console.time('isobands')
-            var polygons = turf.isobands(grid, breaks, { zProperty: 'val' })
-            var polygon = turf.polygonSmooth(polygons, { iterations: 3 })
-            console.timeEnd('isobands')
+            // console.time('isobands')
+            // var polygons = turf.isobands(grid, breaks, { zProperty: 'val' })
+            // var polygon = turf.polygonSmooth(polygons, { iterations: 3 })
+            // console.timeEnd('isobands')
 
-            L.geoJSON(polygon, {
+            L.geoJSON(grid, {
                 style: function (feature) {
                     var color = randomColor(feature.properties.val)
                     return {
-                        // stroke: false,
+                        stroke: false,
                         weight: 1,
                         color: color,
                         fillColor: color,
@@ -183,8 +303,8 @@
             }
         }
 
-        initStationLayer()
-        map.on('zoomend moveend', initStationLayer)
+        // initStationLayer()
+        // map.on('zoomend moveend', initStationLayer)
 
         // 海量点图层
         // var easing = BezierEasing(0, 0, 0.25, 1);
@@ -365,7 +485,7 @@
         L.control.layers({
             // ...
         }, {
-            "底图": tileLayer,
+            "底图": gl,
             "省界": provinceLayer,
             "市界": cityLayer,
             "色斑": spotLayer,
