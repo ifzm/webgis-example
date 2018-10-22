@@ -5,8 +5,8 @@
     <meta charset='utf-8' />
     <title>Display a map</title>
     <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-    <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.js'></script>
-    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.45.0/mapbox-gl.css' rel='stylesheet' />
+    <link href='mapbox-gl.css' rel='stylesheet' />
+    <script src='mapbox-gl.js'></script>
     <style>
         body {
             margin: 0;
@@ -37,9 +37,9 @@
     <div id="log"></div>
     <div id='map'></div>
 
-    <script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js"></script>
-    <script src='https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js'></script>
-    <script src='polygonSmooth.js'></script>
+    <script src="jquery.min.js"></script>
+    <!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js'></script> -->
+    <!-- <script src='polygonSmooth.js'></script> -->
     <script src="./cityAndTownsData.js"></script>
     <script>
         mapboxgl.accessToken = 'pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow';
@@ -53,17 +53,19 @@
 
         map.on('load', function () {
             console.log(map)
-            var features = cntyData.map(v => ({
-                "type": "Feature",
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [Number(v.lon), Number(v.lat)]
-                },
-                "properties": {
-                    "title": v.cnty,
-                    "icon": "harbor"
+            var features = cntyData.map(function (v) {
+                return {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [Number(v.lon), Number(v.lat)]
+                    },
+                    "properties": {
+                        "title": v.cnty,
+                        "icon": "harbor"
+                    }
                 }
-            }))
+            })
 
             var start = Date.now()
             console.time('points')
@@ -103,15 +105,15 @@
                     data: json
                 })
 
-                map.addLayer({
-                    id: 'fill-layer-aaa',
-                    "type": "fill",
-                    "source": "tmax",
-                    "paint": {
-                        "fill-color": "rgba(0, 0, 0, 0.5)",
-                        "fill-opacity": 1
-                    }
-                })
+                // map.addLayer({
+                //     id: 'fill-layer-aaa',
+                //     "type": "fill",
+                //     "source": "tmax",
+                //     "paint": {
+                //         "fill-color": "rgba(0, 0, 0, 0.5)",
+                //         "fill-opacity": 1
+                //     }
+                // })
 
                 map.addLayer({
                     id: 'line-layer',
