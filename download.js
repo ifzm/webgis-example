@@ -17,8 +17,3 @@ var download_file_wget = function(file_url) {
         else console.log(file_name + ' downloaded to ' + DOWNLOAD_DIR);
     });  
 }
-
-var max = 65535;
-for (var i = 0; i < max; i++) {
-    for (var k = 0)
-}
