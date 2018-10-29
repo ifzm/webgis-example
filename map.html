@@ -29,7 +29,7 @@
         var map = new AMap.Map('container', {
             cursor: 'default',
             zoom: 7,
-            features: []
+            // features: []
         });
 
 
@@ -63,6 +63,12 @@
                     district.search(item.name, function (status, result) {
                         var lnglats = result.districtList[0].boundaries.map(bound => bound.map(val => [val.lng, val.lat]))
                         // console.log(item.name, JSON.stringify(lnglats))
+
+                        result.districtList[0].districtList.forEach(c => {
+                            district.search(c.name, function (status, result) {
+                                console.log(c.name)
+                            })
+                        })
                     })
                 })
 
@@ -91,7 +97,7 @@
                 // }
 
                 // $.get('http://192.168.1.110:8080/task/interpolate', function(res) {
-                $.get('./china1.json', function (polygon) {
+                $.get('111./china1.json', function (polygon) {
                     console.time('interpolate')
                     
                     // console.time('isobands')

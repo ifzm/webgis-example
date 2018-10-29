@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset='utf-8' />
+    <title>Common Map</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+    <link rel="stylesheet" href="leaflet.css" />
+    <link rel='stylesheet' href='mapbox-gl.css' />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 100%;
+            background-color: #ffffff;
+        }
+
+        #log {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            z-index: 100000;
+            background-color: #000;
+            /* opacity: 0.3; */
+            color: white;
+            padding: 10px;
+        }
+
+        .control {
+            position: fixed;
+            right: 10px;
+            top: 10px;
+            z-index: 2000;
+            background-color: #ffffff;
+            padding: 10px;
+            border: 2px solid #ccc;
+            border-radius: 5px;
+        }
+
+        .control label {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="log"></div>
+    <div id='map'></div>
+    <div class="control">
+        <div class="control-menu"></div>
+        <div class="control-selectors">
+            <label for="area" class="control-selector">
+                <input type="checkbox" name="area" id="area" checked />
+                <span>叠加地名</span>
+            </label>
+            <label for="numerical" class="control-selector">
+                <input type="checkbox" name="numerical" id="numerical" />
+                <span>叠加数值</span>
+            </label>
+            <label for="spot" class="control-selector">
+                <input type="checkbox" name="spot" id="spot" checked />
+                <span>叠加色斑图</span>
+            </label>
+        </div>
+    </div>
+
+    <script src="jquery.min.js"></script>
+    <script src="leaflet.js"></script>
+    <script src='mapbox-gl.js'></script>
+    <script src='leaflet-mapbox-gl.js'></script>
+    <script src='leaflet-omnivore.min.js'></script>
+    <script src="leaflet.ajax.min.js"></script>
+    <script src="cityAndTownsData.js"></script>
+    <script>
+        var Utils = {
+            randomColor: function(val) {
+                return '#' + (val === 0 ? 'ffffff' : Math.floor(Math.random() * 0xffffff).toString(16))
+            },
+            getRange: function(val, breaks) {
+                var range = breaks || [0, 10, 20, 50, 100]
+                for (var i = 0, len = range.length; i < len; i++) {
+                    if (i === 0 && val < range[i]) {
+                        return '$-' + range[i]
+                    }
+
+                    if (i === len - 1 && val >= range[i]) {
+                        return range[i] + '-$'
+                    }
+
+                    if (val >= range[i] && val < range[i + 1]) {
+                        return range[i] + '-' + range[i + 1]
+                    }
+                }
+
+                throw new Error('fail...')
+            },
+            convertToGeoJSON: function(data, name) {
+                return data.map(function(v) {
+                    return {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [Number(v.lon), Number(v.lat)]
+                        },
+                        "properties": {
+                            "title": v[name]
+                        }
+                    }
+                })
+            },
+            createDefaultTextLayerOptions: function(id, features) {
+                return {
+                    "id": id,
+                    "type": "symbol",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "FeatureCollection",
+                            "features": features
+                        }
+                    },
+                    "layout": {
+                        "text-size": 14,
+                        "text-field": "{title}",
+                        "text-offset": [0, 0],
+                        "text-anchor": "top",
+                        "text-allow-overlap": true,
+                        "text-ignore-placement": true,
+                    }
+                }
+            }
+        }
+
+        var GeoJSON = {
+            city: {
+                name: 'city',
+                json: Utils.convertToGeoJSON(cityData, 'city')
+            },
+            cnty: {
+                name: 'cnty',
+                json: Utils.convertToGeoJSON(cntyData, 'cnty')
+            },
+            station: {
+                name: 'station',
+                json: Utils.convertToGeoJSON(townsStationData, 'station')
+            },
+            mock: {
+                name: 'mock',
+                json: cntyData.map(function(v) {
+                    var val = parseInt(Math.random() * 100)
+                    var color = Utils.randomColor()
+                    console.log(color)
+                    return {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [Number(v.lon), Number(v.lat)]
+                        },
+                        "properties": {
+                            "title": v.cnty,
+                            "value": val,
+                            "icon": Utils.getRange(val),
+                            "color": color
+                        }
+                    }
+                })
+            }
+        }
+
+        var GIS = window.GIS = {
+            Utils: Utils,
+            GeoJSON: GeoJSON,
+            Layers: {}
+        }
+    </script>
+    <script>
+        function loadBoundary(map) {
+            $.getJSON('./geojson/index.json', function(res) {
+                L.geoJson.ajax('./geojson/' + res.src, {
+                    style: function (feature) {
+                        return feature.properties && feature.properties.style
+                    }
+                }).addTo(map)
+
+                res.districts.forEach(function(item, index) {
+                    L.geoJson.ajax('./geojson/' + item.src, {
+                        style: function (feature) {
+                            return feature.properties && feature.properties.style
+                        }
+                    }).addTo(map)
+
+                    item.districts.forEach(function(item, index) {
+                        L.geoJson.ajax('./geojson/' + item.src, {
+                            style: function (feature) {
+                                return feature.properties && feature.properties.style
+                            }
+                        }).addTo(map)
+                    })
+                })
+            })
+            // var provinceLayer = L.geoJson.ajax('./geojson/districts/an-hua-xian.json', {
+            //     style: function (feature) {
+            //         return feature.properties && feature.properties.style
+            //     }
+            // }).addTo(map)
+
+            // var cityLayer = L.layerGroup().addTo(map);
+            // [57687, 57662, 57558, 57674, 57749, 57763, 57766, 57773, 57872, 57972, 57780, 57584, 57866, 57649].forEach(function (code) {
+            //     L.geoJson.ajax('./geojson/' + code + '.json', {
+            //         local: true,
+            //         style: function (feature) {
+            //             return feature.properties && feature.properties.style
+            //         }
+            //     }).addTo(cityLayer)
+            // })
+
+            // Layers.province = provinceLayer
+            // Layers.city = cityLayer
+        }
+
+        function toggleSpot(map) {
+            var spotLayer = Layers.spot
+            if (spotLayer) {
+                if (map.hasLayer(spotLayer)) {
+                    map.removeLayer(spotLayer)
+                } else {
+                    map.addLayer(spotLayer)
+                }
+
+                return
+            }
+
+            spotLayer = Layers.spot = L.geoJson.ajax('./test-geojson.json', {
+                local: true,
+                pane: 'spot',
+                style: function (feature) {
+                    var color = feature.properties.color// Utils.randomColor(feature.properties.val)
+                    return {
+                        stroke: false,
+                        weight: 1,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.5
+                    }
+                }
+            }).addTo(map)
+        }
+
+        var start = Date.now()
+        var map = L.map('map', {
+            maxZoom: 18,
+            center: [27.4, 111.5],
+            zoom: 6.5,
+            minZoom: 6.5,
+            zoomSnap: 0.5,
+            zoomDelta: 0.5,
+            zoomControl: false,
+            attributionControl: false,
+            renderer: L.canvas(),
+        })
+
+        map.createPane('top')
+        map.getPane('top').style.zIndex = 400
+        map.createPane('spot')
+        map.getPane('spot').style.zIndex = 399
+
+        // 加载省市边界
+        loadBoundary(map)
+        // 加载色斑图
+        // toggleSpot(map)
+
+        $('#spot').change(function(e) {
+            toggleSpot(map)
+        })
+
+        var gl = L.mapboxGL({
+            accessToken: 'pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow',
+            style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
+            pane: 'top'
+        }).addTo(map)
+
+        var glMap = gl._glMap
+        glMap.on('load', function() {
+            glMap.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.city.name, GeoJSON.city.json))
+            glMap.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.cnty.name, GeoJSON.cnty.json))
+            glMap.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.station.name, GeoJSON.station.json))
+            glMap.setLayerZoomRange(GeoJSON.city.name, 5, 11)
+            glMap.setLayerZoomRange(GeoJSON.cnty.name, 8, 11)
+            glMap.setLayerZoomRange(GeoJSON.station.name, 11, 18)
+
+            $('#area').change(function(e) {
+                if (!this.checked) {
+                    glMap.setLayoutProperty(GeoJSON.city.name, 'visibility', 'none')
+                    glMap.setLayoutProperty(GeoJSON.cnty.name, 'visibility', 'none')
+                    glMap.setLayoutProperty(GeoJSON.station.name, 'visibility', 'none')
+                } else {
+                    glMap.setLayoutProperty(GeoJSON.city.name, 'visibility', 'visible')
+                    glMap.setLayoutProperty(GeoJSON.cnty.name, 'visibility', 'visible')
+                    glMap.setLayoutProperty(GeoJSON.station.name, 'visibility', 'visible')
+                }
+            })
+
+            glMap.addLayer({
+                "id": "mock",
+                "type": "symbol",
+                "source": {
+                    "type": "geojson",
+                    "data": {
+                        "type": "FeatureCollection",
+                        "features": GeoJSON.mock.json
+                    }
+                },
+                "layout": {
+                    "text-size": 14,
+                    "text-field": "{value}",
+                    "text-offset": [0, 1.8],
+                    "text-anchor": "top",
+                    // "text-allow-overlap": true,
+                    // "text-ignore-placement": true,
+                }
+            })
+
+            glMap.addLayer({
+                "id": "circle",
+                "type": "circle",
+                "source": {
+                    "type": "geojson",
+                    "data": {
+                        "type": "FeatureCollection",
+                        "features": GeoJSON.mock.json
+                    }
+                },
+                "paint": {
+                    'circle-color': { 
+                        "type": "identity", 
+                        "property": "color" 
+                    },
+                    "circle-translate": [0, 22]
+                }
+            })
+
+            // glMap.setLayerZoomRange('mock', 11, 18)
+            // glMap.setLayerZoomRange('circle', 11, 18)
+
+            $('#numerical').change(function(e) {
+                if (this.checked) {
+                    glMap.setLayerZoomRange('mock', 5, 18)
+                } else {
+                    glMap.setLayerZoomRange('mock', 11, 18)
+                }
+            })
+
+            $('#log').append(`<div>Init Time: ${Date.now() - start}ms</div>`)
+        })
+
+        map.on('click', function (e) {
+            var point = e.layerPoint
+            var offset = gl._offset || { x: 0, y: 0 }
+
+            var features = glMap.queryRenderedFeatures([point.x - offset.x, point.y - offset.y], {
+                layers: ['mock', 'circle']
+            })
+
+            if (features.length > 0) {
+                window.popup = L.popup()
+                    .setLatLng(e.latlng)
+                    .setContent(features[0].properties.title + ": " + features[0].properties.value)
+                    .openOn(map)
+            }
+        })
+
+        map.on('zoomstart', function (e) {
+            window.popup && (window.popup.remove(), window.popup = undefined)
+        })
+    </script>
+
+</body>
+
+</html>

@@ -1,0 +1,50 @@
+{
+    "bounds": [
+        108.790841,
+        24.636323,
+        114.261264,
+        30.126363
+    ],
+    "center": [
+        111.52605249999999,
+        27.381343,
+        0
+    ],
+    "format": "pbf",
+    "mapbox_logo": true,
+    "maxzoom": 12,
+    "minzoom": 0,
+    "name": "county-boundary + city-boundary",
+    "scheme": "xyz",
+    "tilejson": "2.2.0",
+    "tiles": [
+        "https://a.tiles.mapbox.com/v4/ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t,ifzm.cjnn282t700rt2wt1zl88rvia-3ptil/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow",
+        "https://b.tiles.mapbox.com/v4/ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t,ifzm.cjnn282t700rt2wt1zl88rvia-3ptil/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow"
+    ],
+    "vector_layers": [
+        {
+            "description": "",
+            "fields": {
+                "name": "String",
+                "style": "String"
+            },
+            "id": "city-boundary",
+            "maxzoom": 22,
+            "minzoom": 0,
+            "source": "ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t",
+            "source_name": "city-boundary"
+        },
+        {
+            "description": "",
+            "fields": {
+                "name": "String",
+                "style": "String"
+            },
+            "id": "county-boundary",
+            "maxzoom": 22,
+            "minzoom": 0,
+            "source": "ifzm.cjnn282t700rt2wt1zl88rvia-3ptil",
+            "source_name": "county-boundary"
+        }
+    ]
+}

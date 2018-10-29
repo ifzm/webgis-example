@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="50px" height="50px" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>Group 11</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="天气监测图标10.10" transform="translate(-283.000000, -316.000000)" fill="#FF0404" fill-rule="nonzero">
+            <g id="Group-4" transform="translate(283.000000, 316.000000)">
+                <g id="大风" transform="translate(2.000000, 2.000000)">
+                    <path d="M20.1486205,0.523431299 C19.6506226,0.0840184784 18.93299,-0.0953673407 18.2507688,0.0490274362 C17.5685477,0.193422213 17.0184649,0.641124918 16.7960197,1.23302233 L0.135229222,42.8987524 C-0.269356671,43.8729436 0.263234897,44.9575735 1.34134782,45.3550291 C2.40436757,45.7189219 3.59004344,45.2185693 3.98356518,44.2269613 L12.7994742,22.1841526 L44.8076125,13.6781574 C46.2845967,13.282424 46.4276956,11.3901812 45.0222608,10.8125014 L20.1486205,0.523431299 Z" id="Shape"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

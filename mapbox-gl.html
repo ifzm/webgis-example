@@ -38,66 +38,223 @@
     <div id='map'></div>
 
     <script src="jquery.min.js"></script>
-    <!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/Turf.js/5.1.6/turf.min.js'></script> -->
-    <!-- <script src='polygonSmooth.js'></script> -->
     <script src="./cityAndTownsData.js"></script>
     <script>
+        var Utils = {
+            randomColor: function(val) {
+                return '#' + (val === 0 ? 'ffffff' : Math.floor(Math.random() * 0xffffff).toString(16))
+            },
+            getRange: function(val, breaks) {
+                var range = breaks || [0, 10, 20, 50, 100]
+                for (var i = 0, len = range.length; i < len; i++) {
+                    if (i === 0 && val < range[i]) {
+                        return '$-' + range[i]
+                    }
+
+                    if (i === len - 1 && val >= range[i]) {
+                        return range[i] + '-$'
+                    }
+
+                    if (val >= range[i] && val < range[i + 1]) {
+                        return range[i] + '-' + range[i + 1]
+                    }
+                }
+
+                throw new Error('fail...')
+            },
+            convertToGeoJSON: function(data, name) {
+                return data.map(function(v) {
+                    return {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [Number(v.lon), Number(v.lat)]
+                        },
+                        "properties": {
+                            "title": v[name]
+                        }
+                    }
+                })
+            },
+            createDefaultTextLayerOptions: function(id, features) {
+                return {
+                    "id": id,
+                    "type": "symbol",
+                    "source": {
+                        "type": "geojson",
+                        "data": {
+                            "type": "FeatureCollection",
+                            "features": features
+                        }
+                    },
+                    "layout": {
+                        "icon-image": "point",
+                        "icon-size": 0.5,
+                        "text-size": 14,
+                        "text-field": "{title}",
+                        "text-offset": [0, 0.3],
+                        "text-anchor": "top",
+                        "text-font": ["Microsoft YaHei Regular"],
+                        "text-allow-overlap": true,
+                        "text-ignore-placement": true,
+                    }
+                }
+            }
+        }
+
+        var GeoJSON = {
+            city: {
+                name: 'city',
+                json: Utils.convertToGeoJSON(cityData, 'city')
+            },
+            cnty: {
+                name: 'cnty',
+                json: Utils.convertToGeoJSON(cntyData, 'cnty')
+            },
+            station: {
+                name: 'station',
+                json: Utils.convertToGeoJSON(townsStationData, 'station')
+            },
+            mock: {
+                name: 'mock',
+                json: cntyData.map(function(v) {
+                    var val = parseInt(Math.random() * 100)
+                    var color = Utils.randomColor()
+                    return {
+                        "type": "Feature",
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [Number(v.lon), Number(v.lat)]
+                        },
+                        "properties": {
+                            "title": v.cnty,
+                            "value": val,
+                            "icon": Utils.getRange(val),
+                            "color": color
+                        }
+                    }
+                })
+            }
+        }
+
         mapboxgl.accessToken = 'pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow';
         var map = new mapboxgl.Map({
-            container: 'map', // container id
-            // style: 'mapbox://styles/ifzm/cjnbf7nre5w492soaxksemw8k', // stylesheet location
-            style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
-            center: [112.600, 28.168], // starting position [lng, lat]
-            zoom: 7 // starting zoom
-        });
-
-        map.on('load', function () {
-            console.log(map)
-            var features = cntyData.map(function (v) {
-                return {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [Number(v.lon), Number(v.lat)]
-                    },
-                    "properties": {
-                        "title": v.cnty,
-                        "icon": "harbor"
-                    }
-                }
-            })
-
-            var start = Date.now()
-            console.time('points')
-            map.addLayer({
-                "id": "points",
-                "type": "symbol",
-                "source": {
-                    "type": "geojson",
-                    "data": {
-                        "type": "FeatureCollection",
-                        "features": features
+            container: 'map',
+            center: [111.5, 27.4],
+            zoom: 5,
+            minZoom: 5,
+            maxBounds: [[104.94, 20.89], [118.03, 33.52]],
+            // style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
+            style: {
+                "version": 8,
+                "sources": {
+                    // "composite": {
+                    //     "url": "mapbox://ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t,ifzm.cjnn282t700rt2wt1zl88rvia-3ptil",
+                    //     "type": "vector"
+                    // }
+                    "composite": {
+                        "name": "county-boundary + city-boundary",
+                        "type": "vector",
+                        "scheme": "xyz",
+                        "bounds": [
+                            108.790841,
+                            24.636323,
+                            114.261264,
+                            30.126363
+                        ],
+                        "maxzoom": 12,
+                        "minzoom": 0,
+                        "tilejson": "2.2.0",
+                        "format": "pbf",
+                        "mapbox_logo": false,
+                        "tiles": [
+                            "http://192.168.1.180:8090/task/proxyTile/{z}/{x}/{y}.vector.pbf"
+                            // "https://a.tiles.mapbox.com/v4/ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t,ifzm.cjnn282t700rt2wt1zl88rvia-3ptil/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow",
+                            // "https://b.tiles.mapbox.com/v4/ifzm.cjnn1u32v024l2qmzv5qbr34i-30s8t,ifzm.cjnn282t700rt2wt1zl88rvia-3ptil/{z}/{x}/{y}.vector.pbf?access_token=pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow"
+                        ]
                     }
                 },
-                "layout": {
-                    "icon-image": "{icon}-15",
-                    "text-field": "{title}",
-                    "text-font": ["Open Sans Semibold", "Arial Unicode MS Bold"],
-                    "text-offset": [0, 0.6],
-                    "text-anchor": "top"
-                }
+                "sprite": "mapbox://sprites/ifzm/cjnbezsim0bh62sqqiao9g3vc",
+                // "sprite": "http://192.168.1.180:5500/sprite/sprite",
+                "glyphs": "./{fontstack}/{range}.pbf",
+                // "glyphs": "mapbox://fonts/ifzm/{fontstack}/{range}.pbf",
+                "layers": [
+                    {
+                        "id": "background",
+                        "type": "background",
+                        "layout": {},
+                        "paint": {"background-color": "rgba(0,0,0,0)"}
+                    },
+                    {
+                        "id": "city-boundary",
+                        "type": "line",
+                        "source": "composite",
+                        "source-layer": "city-boundary",
+                        "filter": ["in", "$type", "LineString", "Point", "Polygon"],
+                        "layout": {},
+                        "paint": {"line-color": "hsl(0, 0%, 86%)"}
+                    },
+                    {
+                        "id": "county-boundary",
+                        "type": "line",
+                        "source": "composite",
+                        "source-layer": "county-boundary",
+                        "minzoom": 8,
+                        "layout": {},
+                        "paint": {"line-color": "hsl(0, 0%, 89%)"}
+                    }
+                ]
+            }
+        });
+
+        var addLayer = map.addLayer
+        map.addLayer = function(o) {
+            console.log(arguments)
+            addLayer.apply(map, arguments)
+        }
+
+        map.on('load', function () {
+            map.dragRotate.disable();
+            map.touchZoomRotate.disableRotation();
+
+            map.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.city.name, GeoJSON.city.json))
+            map.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.cnty.name, GeoJSON.cnty.json))
+            map.addLayer(Utils.createDefaultTextLayerOptions(GeoJSON.station.name, GeoJSON.station.json))
+            map.setLayerZoomRange(GeoJSON.city.name, 4, 11)
+            map.setLayerZoomRange(GeoJSON.cnty.name, 8, 11)
+            map.setLayerZoomRange(GeoJSON.station.name, 11, 18)
+
+            // 省界
+            $.getJSON('./geojson/hu-nan-sheng.json', function(json) {
+                map.addLayer({
+                    "id": "hu-nan-sheng-fill",
+                    "type": "fill",
+                    "source": {
+                        "type": "geojson",
+                        "data": json
+                    },
+                    "paint": {
+                        "fill-color": "#ffffff",
+                        "fill-opacity": 1
+                    }
+                }, GeoJSON.station.name)
+
+                map.addLayer({
+                    "id": "hu-nan-sheng-line",
+                    "type": "line",
+                    "source": {
+                        "type": "geojson",
+                        "data": json
+                    }
+                }, GeoJSON.station.name)
             })
-            console.timeEnd('points')
-            $('#log').append(`<div>points time: ${Date.now() - start}ms</div>`)
 
             map.on('click', 'points', function (e) {
                 alert(e.features[0].properties.title)
                 console.log(e.features[0])
             })
 
-            $.getJSON('geojson.json', function (json) {
-                console.log(json)
-
+            $.getJSON('./test-geojson.json', function (json) {
                 var start = Date.now()
                 console.time('polygons')
                 map.addSource('tmax', {
@@ -105,153 +262,22 @@
                     data: json
                 })
 
-                // map.addLayer({
-                //     id: 'fill-layer-aaa',
-                //     "type": "fill",
-                //     "source": "tmax",
-                //     "paint": {
-                //         "fill-color": "rgba(0, 0, 0, 0.5)",
-                //         "fill-opacity": 1
-                //     }
-                // })
-
                 map.addLayer({
-                    id: 'line-layer',
-                    "type": "line",
+                    id: 'fill-layer-aaa',
+                    "type": "fill",
                     "source": "tmax",
                     "paint": {
-                        "line-color": {
-                            "type": "identity",
-                            "property": "color"
-                        }
+                        "fill-color": { 
+                            "type": "identity", 
+                            "property": "color" 
+                        },
+                        "fill-opacity": 0.5
                     }
-                })
-
-                $.getJSON('./geojson/hunan.json', function (json) {
-                    map.addLayer({
-                        "id": "route",
-                        "type": "line",
-                        "source": {
-                            "type": "geojson",
-                            "data": json
-                        }
-                    })
-                })
+                }, 'city-boundary')
 
                 console.timeEnd('polygons')
                 $('#log').append(`<div>polygons time: ${Date.now() - start}ms</div>`)
             })
-
-            // var breaks = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 9999]
-            // $.getJSON('./grids/TMAX-2018090108.json', function (json) {
-            //     console.time('polygons')
-            //     var polygons = turf.isolines(json, breaks, { zProperty: 'val' })
-            //     // var polygon = turf.polygonSmooth(polygons, { iterations: 3 })
-            //     // map.addLayer({
-            //     //     "id": "tmax",
-            //     //     "type": "fill",
-            //     //     "source": {
-            //     //         "type": "geojson",
-            //     //         "data": polygon
-            //     //     },
-            //     //     'layout': {},
-            //     //     'paint': {
-            //     //         'fill-color': '#088',
-            //     //         'fill-opacity': 0.8
-            //     //     }
-            //     // })
-
-            //     var _lFeatures = polygons.features;
-            //     for (var i = 0; i < _lFeatures.length; i++) {
-            //         var _coords = _lFeatures[i].geometry.coordinates;
-            //         var _lCoords = [];
-            //         for (var j = 0; j < _coords.length; j++) {
-            //             var _coord = _coords[j];
-            //             var line = turf.lineString(_coord);
-            //             var curved = turf.bezierSpline(line);
-            //             _lCoords.push(curved.geometry.coordinates);
-            //         }
-            //         _lFeatures[i].geometry.coordinates = _lCoords;
-            //     }
-
-            //     map.addSource('tmax', {
-            //         type: 'geojson',
-            //         data: polygons
-            //     })
-
-            //     map.addLayer({
-            //         id: 'tmax-layer',
-            //         "type": "line",
-            //         "source": "tmax",
-            //         // "paint": {
-            //         //     "fill-color": "#000",
-            //         //     "fill-opacity": 0.4
-            //         // },
-            //         // "filter": ["==", "$type", "Polygon"]
-            //     })
-            //     console.timeEnd('polygons')
-            // })
-
-            // map.addSource('tmax', {
-            //     type: 'geojson',
-            //     data: './grids/TMAX-2018090108.json'
-            // })
-
-            // map.addLayer({
-            //     id: 'tmax-layer',
-            //     "type": "fill",
-            //     "source": "tmax",
-            //     "paint": {
-            //         "fill-color": "#888888",
-            //         "fill-opacity": 0.4
-            //     }
-            // })
-
-            // map.addLayer({
-            //     "id": "route",
-            //     "type": "line",
-            //     "source": {
-            //         "type": "geojson",
-            //         "data": {
-            //             "type": "Feature",
-            //             "properties": {},
-            //             "geometry": {
-            //                 "coordinates": [
-            //                     [
-            //                         [
-            //                             108.385066,
-            //                             31.902243
-            //                         ],
-            //                         [
-            //                             108.451791,
-            //                             24.480798
-            //                         ],
-            //                         [
-            //                             116.836915,
-            //                             24.440307
-            //                         ],
-            //                         [
-            //                             116.836915,
-            //                             31.902243
-            //                         ],
-            //                         [
-            //                             108.385066,
-            //                             31.902243
-            //                         ]
-            //                     ]
-            //                 ],
-            //                 "type": "Polygon"
-            //             }
-            //         },
-            //         "layout": {
-            //             "line-join": "round",
-            //             "line-cap": "round"
-            //         },
-            //         "paint": {
-            //             "line-color": "#888",
-            //             "line-width": 8
-            //         }
-            //     });
         })
     </script>
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="50px" height="50px" viewBox="0 0 50 50" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>降水</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="天气监测图标10.10" transform="translate(-54.000000, -230.000000)" fill="#1B55FF" fill-rule="nonzero">
+            <g id="Group-3-Copy-3" transform="translate(54.000000, 230.000000)">
+                <g id="降水" transform="translate(10.000000, 0.000000)">
+                    <path d="M14.9008895,50 C6.67375745,50 0,43.1372222 0,34.6672901 C0,26.1973579 9.10680236,10.3924036 14.9008895,0.167667486 C20.2841955,10.3918177 29.8017791,26.1997016 29.8017791,34.6672901 C29.8017792,43.1348785 23.1326242,50 14.9008895,50 Z" id="Shape"></path>
+                </g>
+            </g>
+        </g>
+    </g>
+</svg>

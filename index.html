@@ -27,6 +27,7 @@
     <script src='bezier-easing.js'></script>
     <script src="data.js"></script>
     <script src="cityAndTownsData.js"></script>
+    <script src='//api.tiles.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.3.1/leaflet-omnivore.min.js'></script>
     <script>
         function randomColor() {
             return '#' + Math.floor(Math.random() * 0xffffff).toString(16)
@@ -120,16 +121,17 @@
         console.time('gl')
         var gl = L.mapboxGL({
             accessToken: 'pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow',
-            style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
-            // style: {
-            //     "version": 8,
-            //     "name": "Mapbox Streets",
-            //     "sprite": "mapbox://sprites/mapbox/streets-v8",
-            //     "glyphs": "http://127.0.0.1:8090/task/proxy/{fontstack}/{range}.pbf",
-            //     // "glyphs": "./{fontstack}/{range}.pbf",
-            //     "sources": {},
-            //     "layers": []
-            // },
+            // style: 'mapbox://styles/ifzm/cjnbezsim0bh62sqqiao9g3vc',
+            style: {
+                "version": 8,
+                "name": "Mapbox Streets",
+                "sprite": "mapbox://sprites/mapbox/streets-v8",
+                // "glyphs": "http://127.0.0.1:8090/task/proxy/{fontstack}/{range}.pbf",
+                // "glyphs": "http://127.0.0.1:8090/task/proxy/{fontstack}/{range}.pbf?access_token=pk.eyJ1IjoiaWZ6bSIsImEiOiJjamswc3M1a2gwYWEwM3Zxa3ZsMjh3djkwIn0.h93-XtdRdtoC1KbVv_ZIow",
+                "glyphs": "mapbox://fonts/ifzm/{fontstack}/{range}.pbf",
+                "sources": {},
+                "layers": []
+            },
             pane: 'topPane'
         }).addTo(map)
         console.timeEnd('gl')
@@ -173,7 +175,7 @@
                     "type": "geojson",
                     "data": {
                         "type": "FeatureCollection",
-                        "features": cntys
+                        "features": stations
                     }
                 },
                 "layout": {
@@ -202,7 +204,7 @@
                         "type": "geojson",
                         "data": {
                             "type": "FeatureCollection",
-                            "features": stations
+                            "features": []
                         }
                     },
                     "layout": {
@@ -248,6 +250,14 @@
 
         // 14个地市边界图层
         var cityLayer = L.layerGroup()
+        // omnivore.topojson('./geojson/line.topojson', null, L.geoJson(null, {
+        //     style: function(feature) {
+        //         return {
+        //             "weight": 1,
+        //             "color": "#ccc"
+        //         }
+        //     }
+        // })).addTo(cityLayer)
             ;[57687, 57662, 57558, 57674, 57749, 57763, 57766, 57773, 57872, 57972, 57780, 57584, 57866, 57649].forEach(function (code) {
                 L.geoJson.ajax('./geojson/' + code + '.json', {
                     style: function (feature) {
@@ -263,6 +273,18 @@
             }
         })
         provinceLayer.addTo(map)
+        // omnivore.topojson('./geojson/line.topojson', null, L.geoJson(null, {
+        //     style: function(feature) {
+        //         return {
+        //             "weight": 1,
+        //             "color": "#999",
+        //             "opacity": 1,
+        //             "fillColor": "#FFFFFF",
+        //             "fillOpacity": 1
+        //         }
+        //     }
+        // })).addTo(map)
+        
 
         // 色斑图层
         var spotLayer = L.layerGroup()
